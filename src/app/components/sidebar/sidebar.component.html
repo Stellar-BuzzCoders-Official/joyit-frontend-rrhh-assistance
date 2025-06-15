@@ -1,0 +1,82 @@
+<div class="w-full h-full bg-white p-4 flex flex-col rounded-xl">
+  <!-- Título -->
+  <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+    🤖 ChatBot
+  </h2>
+
+  <!-- Botón nuevo chat + lupa -->
+  <div class="flex items-center justify-between mb-6">
+    <button
+      (click)="startNewChat()"
+      class="bg-[#5a6af9] text-white py-2 px-4 rounded-4xl hover:bg-blue-700 transition duration-200 w-full mr-2"
+    >
+      + Nuevo Chat
+    </button>
+    <div
+      class="w-9 h-9 flex items-center justify-center bg-black rounded-full cursor-pointer hover:scale-105 transition"
+      title="Buscar"
+    >
+      <svg
+        class="w-5 h-5 text-white"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18.5a7.5 7.5 0 006.15-3.85z"
+        />
+      </svg>
+    </div>
+  </div>
+
+  <!-- Historial -->
+  <h3 class="text-lg font-semibold text-gray-700 mb-3">Historial de conversaciones</h3>
+  <ul class="space-y-2 overflow-y-auto flex-1 pr-1">
+    <li
+      *ngFor="let chat of chatHistory"
+      (click)="selectChat(chat)"
+      class="flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 transition group"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        class="text-black group-hover:text-blue-600 transition"
+      >
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M18 3a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-2.586l-2.707 2.707a1 1 0 0 1 -1.32 .083l-.094 -.083l-2.708 -2.707h-2.585a4 4 0 0 1 -3.995 -3.8l-.005 -.2v-8a4 4 0 0 1 4 -4zm-4 9h-6a1 1 0 0 0 0 2h6a1 1 0 0 0 0 -2m2 -4h-8a1 1 0 1 0 0 2h8a1 1 0 0 0 0 -2" />
+      </svg>
+      <span class="text-black group-hover:text-blue-700 transition font-medium">
+        {{ chat.title }}
+      </span>
+    </li>
+  </ul>
+
+  <!-- Ajustes y perfil -->
+  <div class="mt-6 pt-4 border-t border-gray-200">
+    <!-- Ajustes -->
+    <div class="flex items-center gap-3 mb-4 cursor-pointer hover:text-blue-600 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.591 1.011c1.52-.89 3.304.893 2.413 2.413a1.724 1.724 0 001.011 2.591c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.011 2.591c.89 1.52-.893 3.304-2.413 2.413a1.724 1.724 0 00-2.591 1.011c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.591-1.011c-1.52.89-3.304-.893-2.413-2.413a1.724 1.724 0 00-1.011-2.591c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.011-2.591c-.89-1.52.893-3.304 2.413-2.413a1.724 1.724 0 002.591-1.011z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      <span class="text-gray-700 font-medium">Settings</span>
+    </div>
+
+    <!-- Usuario -->
+    <div class="flex items-center gap-3">
+      <img
+        src="Liu.jpg"
+        alt="Foto de perfil"
+        class="w-6 h-6 rounded-full object-cover"
+      />
+      <span class="text-gray-800 font-medium text-sm">Eliu Armas</span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,23 @@
+services:
+  joyit-frontend-rrhh-assistance:
+    container_name: joyit-frontend-rrhh-assistance
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./angular.json:/app/angular.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./public:/app/public
+    environment:
+      - NODE_ENV=prduction
+    networks:
+      - joyit_screening_net
+
+networks:
+  joyit_screening_net:
+    external: true
+

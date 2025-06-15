@@ -1,0 +1,16 @@
+<div class="flex h-screen p-4" style="background-color: #eef3ff;">
+  <!-- Sidebar -->
+  <div class="w-80 bg-white rounded-4xl ">
+    <app-sidebar
+      class="w-full h-full"
+      (chatSelected)="onChatSelected($event)"
+      (newChat)="onNewChat()"
+    ></app-sidebar>
+  </div>
+
+  <!-- Chat principal -->
+  <app-chat
+    class="flex-1 ml-4"
+    [selectedChat]="currentChat"
+  ></app-chat>
+</div>

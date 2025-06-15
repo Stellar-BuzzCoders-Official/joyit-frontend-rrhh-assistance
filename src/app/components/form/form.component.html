@@ -1,0 +1,92 @@
+<section class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+  <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
+
+    <!-- Logo y título -->
+    <div class="flex items-center justify-center gap-4 mb-6">
+      <img src="logo.png" alt="Logo" class="w-12 h-12" />
+      <h1 class="text-2xl font-bold text-gray-800">RRHH Assistant</h1>
+    </div>
+
+    <!-- Subtítulo -->
+    <p class="text-center text-gray-500 mb-8">Ingresa tus credenciales</p>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <!-- Campo: Usuario -->
+      <div class="mb-6">
+        <label class="block text-gray-700 font-medium mb-2" for="username">Usuario</label>
+        <div class="flex items-center border border-gray-300 rounded-lg px-4 py-2 bg-white"
+             [class.border-red-500]="hasError('username', 'required') || hasError('username', 'minlength')">
+          <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <input
+            type="text"
+            id="username"
+            formControlName="username"
+            class="w-full outline-none text-gray-700"
+            placeholder="Ingresa tu usuario"
+            autocomplete="username"
+          />
+        </div>
+        <!-- Errores para usuario -->
+        <div class="mt-1 min-h-[20px]">
+          <small *ngIf="hasError('username', 'required')" class="text-red-500 text-sm">
+            El usuario es requerido
+          </small>
+          <small *ngIf="hasError('username', 'minlength')" class="text-red-500 text-sm">
+            El usuario debe tener al menos 3 caracteres
+          </small>
+        </div>
+      </div>
+
+      <!-- Campo: Contraseña -->
+      <div class="mb-6">
+        <label class="block text-gray-700 font-medium mb-2" for="password">Contraseña</label>
+        <div class="flex items-center border border-gray-300 rounded-lg px-4 py-2 bg-white"
+             [class.border-red-500]="hasError('password', 'required') || hasError('password', 'minlength')">
+          <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.105.895-2 2-2s2 .895 2 2-2 4-2 4-2-2.895-2-4zM12 17h.01M4 4h16v16H4z" />
+          </svg>
+          <input
+            type="password"
+            id="password"
+            formControlName="password"
+            class="w-full outline-none text-gray-700"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+        </div>
+        <!-- Errores para contraseña -->
+        <div class="mt-1 min-h-[20px]">
+          <small *ngIf="hasError('password', 'required')" class="text-red-500 text-sm">
+            La contraseña es requerida
+          </small>
+          <small *ngIf="hasError('password', 'minlength')" class="text-red-500 text-sm">
+            La contraseña debe tener al menos 6 caracteres
+          </small>
+        </div>
+      </div>
+
+      <!-- Mensaje de error general -->
+      <div *ngIf="errorMessage" class="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        {{ errorMessage }}
+      </div>
+
+      <!-- Botón de inicio de sesión -->
+      <button
+        type="submit"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+        [disabled]="loginForm.invalid || isLoading"
+        [class.opacity-50]="loginForm.invalid || isLoading"
+        [class.cursor-not-allowed]="loginForm.invalid || isLoading"
+      >
+        <svg *ngIf="isLoading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        {{ isLoading ? 'Iniciando sesión...' : 'Iniciar sesión' }}
+      </button>
+    </form>
+
+  </div>
+</section>
