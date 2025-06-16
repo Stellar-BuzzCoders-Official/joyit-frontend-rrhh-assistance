@@ -75,7 +75,7 @@
       <!-- Botón de inicio de sesión -->
       <button
         type="submit"
-        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition duration-300 flex items-center justify-center gap-2 cursor-pointer"
         [disabled]="loginForm.invalid || isLoading"
         [class.opacity-50]="loginForm.invalid || isLoading"
         [class.cursor-not-allowed]="loginForm.invalid || isLoading"
@@ -87,6 +87,5 @@
         {{ isLoading ? 'Iniciando sesión...' : 'Iniciar sesión' }}
       </button>
     </form>
-
   </div>
 </section>

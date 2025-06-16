@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
-
+import { environment } from '../../../enviroments/environment';
 // Interfaces para el request y response
 export interface LoginRequest {
   username: string;
@@ -19,7 +19,8 @@ export interface LoginResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'https://joyit-cn-ai-screening-chatbot-a7dsb6bqg3e8bxef.brazilsouth-01.azurewebsites.net/api/v0/auth';
+  // Usar la variable de entorno
+  private apiUrl = `${environment.apiUrl}/api/v0/auth`;
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
