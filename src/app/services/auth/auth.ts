@@ -22,7 +22,7 @@ export interface LoginResponse {
 })
 export class AuthService {
   // Usar la variable de entorno
-  private apiUrl = `${environment.apiUrl}/api/v0/auth`;
+  private apiUrl = `${environment.apiBaseUrl}/api/v0/auth`;
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
