@@ -1,8 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../enviroments/environment';
+
 // Interfaces para el request y response
 export interface LoginRequest {
   username: string;
@@ -21,10 +23,18 @@ export interface LoginResponse {
 export class AuthService {
   // Usar la variable de entorno
   private apiUrl = `${environment.apiUrl}/api/v0/auth`;
-  private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
+  private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    // Solo verificar el token si estamos en el browser
+    if (isPlatformBrowser(this.platformId)) {
+      this.isAuthenticatedSubject.next(this.hasToken());
+    }
+  }
 
   login(loginData: LoginRequest): Observable<LoginResponse> {
     const headers = new HttpHeaders({
@@ -34,32 +44,44 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, loginData, { headers })
       .pipe(
         tap(response => {
-          // Guardar token en localStorage
-          localStorage.setItem('access_token', response.access_token);
-          localStorage.setItem('token_type', response.token_type);
+          if (isPlatformBrowser(this.platformId)) {
+            // Guardar token en localStorage solo si estamos en el browser
+            localStorage.setItem('access_token', response.access_token);
+            localStorage.setItem('token_type', response.token_type);
 
-          // Actualizar estado de autenticación
-          this.isAuthenticatedSubject.next(true);
+            // Actualizar estado de autenticación
+            this.isAuthenticatedSubject.next(true);
+          }
         })
       );
   }
 
   logout(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('token_type');
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.clear(); // Limpia todo el localStorage
+    }
     this.isAuthenticatedSubject.next(false);
   }
 
   getToken(): string | null {
-    return localStorage.getItem('access_token');
+    if (isPlatformBrowser(this.platformId)) {
+      return localStorage.getItem('access_token');
+    }
+    return null;
   }
 
   getTokenType(): string | null {
-    return localStorage.getItem('token_type');
+    if (isPlatformBrowser(this.platformId)) {
+      return localStorage.getItem('token_type');
+    }
+    return null;
   }
 
   hasToken(): boolean {
-    return !!this.getToken();
+    if (isPlatformBrowser(this.platformId)) {
+      return !!this.getToken();
+    }
+    return false;
   }
 
   // Método para obtener headers con autorización

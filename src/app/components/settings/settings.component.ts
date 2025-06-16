@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth/auth';
 
 @Component({
   selector: 'app-senttings',
@@ -9,20 +10,11 @@ import { Router } from '@angular/router';
 })
 export class SettingsComponent {
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private authService: AuthService) {}
 
   onLogout() {
-    // Aquí puedes agregar la lógica de logout
-    // Por ejemplo: limpiar localStorage, tokens, etc.
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-
-    // Opcional: llamar a un servicio de autenticación
-    // this.authService.logout();
-
-    // Redirigir al login
-    this.router.navigate(['/login']);
-
-    console.log('Sesión cerrada');
-  }
+  this.authService.logout();
+  this.router.navigate(['/login']);
+  console.log('Sesión cerrada');
+}
 }

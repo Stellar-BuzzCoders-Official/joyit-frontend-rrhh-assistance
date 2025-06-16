@@ -47,7 +47,7 @@ export class FormComponent implements OnInit {
           console.log('Login exitoso:', response);
           this.isLoading = false;
           // Redirigir a la página de chat
-          this.router.navigate(['/chat']);
+          this.router.navigate(['/chatbot']);
         },
         error: (error) => {
           console.error('Error en login:', error);
