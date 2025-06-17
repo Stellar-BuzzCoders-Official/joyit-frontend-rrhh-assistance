@@ -2,7 +2,7 @@ import { Component, ElementRef, ViewChild, OnInit, Input, Inject, PLATFORM_ID } 
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../enviroments/environment';
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth/auth'; // Ajusta la ruta
 
 interface MessageType {

@@ -8,16 +8,14 @@ services:
       - "4200:4200"
     volumes:
       - ./src:/app/src
-      - ./package.json:/app/package.json
       - ./angular.json:/app/angular.json
       - ./tsconfig.json:/app/tsconfig.json
+      - ./package.json:/app/package.json
       - ./public:/app/public
-    environment:
-      - NODE_ENV=prduction
+      - ./src/environments:/app/src/environments
     networks:
       - joyit_screening_net
 
 networks:
   joyit_screening_net:
     external: true
-

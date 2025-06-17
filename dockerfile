@@ -1,29 +1,18 @@
-# Fase 1: Build Angular app
-FROM node:22-alpine AS builder
+# Imagen base de Node.js
+FROM node:22-alpine
 
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Solo lo necesario para instalar dependencias
-COPY package.json ./
-COPY package-lock.json ./
+# Copiar archivos necesarios
+COPY package*.json ./
+RUN npm install
 
-RUN npm ci
+# Copiar el resto del código fuente
+COPY . .
 
-# Copiar solo el código fuente
-COPY angular.json ./
-COPY tsconfig*.json ./
-COPY src ./src
-COPY public ./public
+# Exponer el puerto por defecto de Angular
+EXPOSE 4200
 
-RUN npm run build -- --output-path=dist
-
-# Fase 2: Servir con Nginx
-FROM nginx:alpine
-
-# Copia build optimizado
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Exponer puerto
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# Ejecutar Angular en modo desarrollo
+CMD ["npx", "ng", "serve", "--host", "0.0.0.0"]

@@ -3,7 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { environment } from '../../../enviroments/environment';
+import { environment } from '../../../environments/environment';
 
 // Interfaces para el request y response
 export interface LoginRequest {
