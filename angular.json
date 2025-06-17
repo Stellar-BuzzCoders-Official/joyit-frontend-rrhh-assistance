@@ -68,6 +68,11 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "allowedHosts": [
+              "joyit-cn-ai-frontend-rrhh-assistant-cxbfapf5duanbmcu.brazilsouth-01.azurewebsites.net"
+            ]
+          },
           "configurations": {
             "production": {
               "buildTarget": "RRHH_ASSITANCE_FT:build:production"
