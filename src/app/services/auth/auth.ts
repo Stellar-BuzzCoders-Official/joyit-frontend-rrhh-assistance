@@ -48,12 +48,30 @@ export class AuthService {
             // Guardar token en localStorage solo si estamos en el browser
             localStorage.setItem('access_token', response.access_token);
             localStorage.setItem('token_type', response.token_type);
+            if (response.user_data) {
+              localStorage.setItem('user_data', JSON.stringify(response.user_data));
+            } else if ((response as any).user) {
+              localStorage.setItem('user_data', JSON.stringify((response as any).user));
+            }
 
             // Actualizar estado de autenticación
             this.isAuthenticatedSubject.next(true);
           }
         })
       );
+  }
+
+  getUserId(): string {
+    if (isPlatformBrowser(this.platformId)) {
+      const stored = localStorage.getItem('user_data');
+      if (stored) {
+        try {
+          const user = JSON.parse(stored);
+          return user.userID || user.userId || user.user_id || user.id || 'a8f0569a-46fd-457f-847e-e233af403114';
+        } catch {}
+      }
+    }
+    return 'a8f0569a-46fd-457f-847e-e233af403114';
   }
 
   logout(): void {

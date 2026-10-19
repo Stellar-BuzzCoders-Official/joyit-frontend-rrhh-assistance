@@ -1,4 +1,13 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'https://joyit-cn-ai-screening-chatbot-a7dsb6bqg3e8bxef.brazilsouth-01.azurewebsites.net'
+  apiBaseUrl: 'http://localhost:5000',
+  // Configuración de Microsoft Entra ID (MSAL)
+  azureAd: {
+    clientId: 'your-entra-client-id',
+    tenantId: 'your-entra-tenant-id',
+    redirectUri: 'http://localhost:4200',
+    scopes: ['api://your-entra-client-id/access_as_user'],
+  },
+  // Alternador: en modo desarrollo permite operar inmediatamente con dev-token
+  useDevAuth: true,
 };

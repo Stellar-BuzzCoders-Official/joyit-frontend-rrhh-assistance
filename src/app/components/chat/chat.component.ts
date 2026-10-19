@@ -215,7 +215,7 @@ export class ChatComponent implements OnInit {
       const messageData = {
         conversation_id: this.conversationId || undefined,
         process_phase: this.processPhase || 'request_requirements',
-        userID: 'a8f0569a-46fd-457f-847e-e233af403114',
+        userID: this.authService.getUserId(),
         message: localMessages
       };
 
