@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, OnInit, AfterViewChecked, Input, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { Component, ElementRef, ViewChild, OnInit, AfterViewChecked, OnChanges, SimpleChanges, Input, Output, EventEmitter, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -31,20 +31,23 @@ type ProcessPhase = 'request_requirements' | 'upload_cv_and_match' | 'analyzing'
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.css']
 })
-export class ChatComponent implements OnInit, AfterViewChecked {
+export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
   @ViewChild('messagesEnd') messagesEndRef!: ElementRef;
   @ViewChild('fileInput') fileInputRef!: ElementRef;
 
   @Input() selectedChat: any = null;
+  @Output() threadUpdated = new EventEmitter<string>();
 
   private streamUrl = `${environment.apiBaseUrl}/api/v1/chat/stream`;
   private bulkUploadUrl = `${environment.apiBaseUrl}/api/v1/files/bulk`;
+  private threadsUrl = `${environment.apiBaseUrl}/api/v1/threads`;
 
+  readonly initialMessageId = '77c4c070-ee71-4267-84ce-1c6c2b65932e';
   exampleText = 'Conocimiento indispensable de análisis, patrones de diseño y patrones de arquitectura de software y sistemas. Conocimiento en arquitectura, infraestructura, redes, y microservicios en Cloud y OnPremise. Buenas prácticas de desarrollo y software seguro...';
 
   messages: MessageType[] = [
     {
-      id: '77c4c070-ee71-4267-84ce-1c6c2b65932e',
+      id: this.initialMessageId,
       content: `Hola soy tu RRHH assistant, para empezar dame los requerimientos técnicos.`,
       role: 'system'
     }
@@ -73,6 +76,103 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   ngAfterViewChecked() {
     this.scrollToBottom();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['selectedChat']) {
+      if (this.selectedChat && this.selectedChat.id) {
+        if (this.conversationId !== this.selectedChat.id) {
+          this.loadThread(this.selectedChat.id);
+        }
+      } else if (this.selectedChat === null && this.conversationId !== '') {
+        this.newChat();
+      }
+    }
+  }
+
+  async loadThread(threadId: string): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    this.isLoading = true;
+    this.streamingStatusText = 'Cargando conversación...';
+    this.conversationId = threadId;
+    this.cdr.detectChanges();
+
+    try {
+      const token = this.authService.getToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${this.threadsUrl}/${threadId}`, {
+        method: 'GET',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status} al recuperar la conversación.`);
+      }
+
+      const data = await response.json();
+      const rawMessages = data.messages || [];
+
+      if (rawMessages.length === 0) {
+        this.messages = [
+          {
+            id: this.initialMessageId,
+            content: `Hola soy tu RRHH assistant, para empezar dame los requerimientos técnicos.`,
+            role: 'system'
+          }
+        ];
+      } else {
+        const loadedMessages: MessageType[] = rawMessages.map((m: any) => {
+          const role: 'user' | 'assistant' | 'system' =
+            (m.role === 'human' || m.role === 'user') ? 'user' :
+            (m.role === 'ai' || m.role === 'assistant') ? 'assistant' : 'system';
+
+          return {
+            id: m.id || this.generateId(),
+            role: role,
+            content: m.content || '',
+            technicalReport: null
+          };
+        });
+
+        // Si el estado contiene reporte técnico, vincularlo al último mensaje del asistente
+        if (data.technical_report) {
+          for (let i = loadedMessages.length - 1; i >= 0; i--) {
+            if (loadedMessages[i].role === 'assistant') {
+              loadedMessages[i].technicalReport = data.technical_report;
+              break;
+            }
+          }
+        }
+
+        this.messages = loadedMessages;
+      }
+
+      if (data.thread && data.thread.processPhase) {
+        this.processPhase = data.thread.processPhase;
+      }
+    } catch (err: any) {
+      console.error('Error cargando historial de la conversación:', err);
+      this.messages = [
+        {
+          id: this.generateId(),
+          role: 'system',
+          content: `⚠️ No se pudo cargar el historial: ${err.message || err}`
+        }
+      ];
+    } finally {
+      this.isLoading = false;
+      this.streamingStatusText = '';
+      this.clearFiles();
+      this.cdr.detectChanges();
+      this.scrollToBottom();
+    }
   }
 
   private scrollToBottom(): void {
@@ -104,6 +204,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   private getFileExtension(filename: string): string {
     return filename.split('.').pop()?.toLowerCase() || '';
+  }
+
+  isInitialWelcomeMessage(message: MessageType): boolean {
+    return message.role === 'system' && message.id === this.initialMessageId;
   }
 
   onFileChange(event: Event): void {
@@ -314,7 +418,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
         buffer += decoder.decode(value, { stream: true });
         const events = buffer.split('\n\n');
-        buffer = events.pop() || ''; // El último fragmento puede estar incompleto
+        buffer = events.pop() || '';
 
         for (const rawEvent of events) {
           if (!rawEvent.trim()) continue;
@@ -438,6 +542,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
             assistantMessage.validate = botPayload.validate;
           }
         }
+        // Notificar que el hilo fue creado o actualizado para refrescar la lista lateral
+        if (this.conversationId) {
+          this.threadUpdated.emit(this.conversationId);
+        }
         break;
 
       case 'error':
@@ -459,7 +567,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   newChat(): void {
     this.messages = [
       {
-        id: this.generateId(),
+        id: this.initialMessageId,
         content: `Hola soy tu RRHH assistant, para empezar dame los requerimientos técnicos.`,
         role: 'system'
       }

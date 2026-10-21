@@ -1,8 +1,9 @@
-<div class="flex h-screen p-4" style="background-color: #eef3ff;">
+<div class="flex h-screen p-4 overflow-hidden" style="background-color: #eef3ff;">
   <!-- Sidebar -->
-  <div class="w-80 bg-white rounded-4xl ">
+  <div class="w-80 bg-white rounded-3xl h-full overflow-hidden shadow-sm flex flex-col shrink-0">
     <app-sidebar
-      class="w-full h-full"
+      #sidebar
+      class="w-full h-full flex flex-col min-h-0 overflow-hidden"
       (chatSelected)="onChatSelected($event)"
       (newChat)="onNewChat()"
     ></app-sidebar>
@@ -10,7 +11,9 @@
 
   <!-- Chat principal -->
   <app-chat
-    class="flex-1 ml-4"
+    #chat
+    class="flex-1 ml-4 h-full flex flex-col min-h-0 overflow-hidden"
     [selectedChat]="currentChat"
+    (threadUpdated)="sidebar.loadChatHistory()"
   ></app-chat>
 </div>
