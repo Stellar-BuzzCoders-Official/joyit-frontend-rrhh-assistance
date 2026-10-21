@@ -1,18 +1,6 @@
 <main class="flex-1 h-full overflow-hidden flex flex-col min-h-0">
-  <!-- Barra superior: Toggle de panel lateral y Botón Nuevo Chat -->
-  <div class="flex items-center justify-between mb-2 shrink-0">
-    <button
-      type="button"
-      class="flex items-center gap-2 px-3 py-1.5 bg-white text-gray-700 border border-gray-200 rounded-full shadow-xs hover:bg-gray-50 hover:text-blue-600 transition text-xs md:text-sm font-medium cursor-pointer"
-      (click)="onToggleSidebar()"
-      [title]="isSidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'"
-    >
-      <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
-      </svg>
-      <span>{{ isSidebarOpen ? 'Ocultar panel' : 'Mostrar panel' }}</span>
-    </button>
-
+  <!-- Botón de Nuevo Chat -->
+  <div class="flex justify-end mb-2 shrink-0">
     <button
       type="button"
       class="flex items-center gap-2 px-3 py-1.5 bg-white text-gray-900 border border-gray-200 rounded-full shadow-sm hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer"
