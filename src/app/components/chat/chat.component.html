@@ -23,18 +23,18 @@
         [ngClass]="message.role === 'user' ? 'justify-end' : 'justify-start'"
       >
         <div
-          class="max-w-[75%] px-4 py-2 rounded-2xl text-base shadow-sm"
+          class="max-w-[75%] px-4 py-3 rounded-2xl text-base shadow-sm"
           [ngClass]="{
             'bg-blue-600 text-white rounded-br-sm': message.role === 'user',
             'bg-gray-100 text-gray-800 rounded-bl-sm border border-gray-200': message.role !== 'user'
           }"
         >
-          <!-- Contenido del mensaje -->
+          <!-- Mensaje inicial del sistema -->
           <div *ngIf="message.role === 'system' && message.id === '77c4c070-ee71-4267-84ce-1c6c2b65932e'">
             <span>
               Hola soy tu RRHH assistant, para empezar dame los requerimientos técnicos.
               <br />
-              <span class="block bg-blue-50/30 border-l-4 border-blue-400 rounded-md p-4 mt-4 text-blue-900 text-sm">
+              <span class="block bg-blue-50/50 border-l-4 border-blue-400 rounded-md p-4 mt-4 text-blue-900 text-sm">
                 <b class="font-semibold">Ejemplo:</b> {{ exampleText }}
               </span>
             </span>
@@ -42,7 +42,7 @@
 
           <!-- Mensaje con reporte técnico -->
           <div *ngIf="hasTechnicalReport(message); else regularMessage">
-            <p class="whitespace-pre-wrap mb-4">{{ getMessageDisplayContent(message) }}</p>
+            <p *ngIf="getMessageDisplayContent(message)" class="whitespace-pre-wrap mb-4">{{ getMessageDisplayContent(message) }}</p>
 
             <!-- Reporte Técnico Detallado -->
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 shadow-sm">
@@ -220,23 +220,53 @@
           <!-- Mensaje regular -->
           <ng-template #regularMessage>
             <div *ngIf="isFileMessage(message); else textMessage">
-              <p class="whitespace-pre-wrap">Archivo enviado: {{ message.file?.name }}</p>
-              <div class="mt-2 flex items-center text-sm">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <p class="whitespace-pre-wrap">{{ getMessageDisplayContent(message) }}</p>
+
+              <!-- Chips de archivos adjuntos en el mensaje del usuario -->
+              <div *ngIf="message.files && message.files.length > 0" class="mt-2.5 flex flex-wrap gap-1.5">
+                <div
+                  *ngFor="let f of message.files"
+                  class="flex items-center text-xs bg-white/20 backdrop-blur-sm rounded-lg px-2.5 py-1 text-white border border-white/20"
+                >
+                  <svg class="w-3.5 h-3.5 mr-1.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <span class="truncate max-w-[180px]">{{ f.name }}</span>
+                  <span class="text-blue-100 text-[10px] ml-1">({{ formatFileSize(f.size) }})</span>
+                </div>
+              </div>
+
+              <!-- Compatibilidad con mensaje legacy de archivo único -->
+              <div *ngIf="message.file && (!message.files || message.files.length === 0)" class="mt-2 flex items-center text-xs bg-white/20 rounded-md px-2 py-1 text-white">
+                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                <span>{{ message.file?.name }}</span>
+                <span>{{ message.file.name }}</span>
               </div>
             </div>
             <ng-template #textMessage>
-              <p class="whitespace-pre-wrap" [innerHTML]="getMessageDisplayContent(message)"></p>
+              <p class="whitespace-pre-wrap leading-relaxed">
+                {{ getMessageDisplayContent(message) }}
+                <span *ngIf="message.isStreaming" class="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse align-middle"></span>
+              </p>
             </ng-template>
           </ng-template>
         </div>
       </div>
 
-      <!-- Indicador de carga -->
-      <div *ngIf="isLoading" class="flex justify-start">
+      <!-- Pill de estado del agente durante el streaming -->
+      <div *ngIf="streamingStatusText" class="flex justify-start">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-xs font-medium text-blue-800 shadow-sm animate-pulse">
+          <svg class="w-3.5 h-3.5 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>{{ streamingStatusText }}</span>
+        </div>
+      </div>
+
+      <!-- Indicador de carga general sin texto de estado -->
+      <div *ngIf="isLoading && !streamingStatusText" class="flex justify-start">
         <div class="bg-gray-100 rounded-2xl px-4 py-2 rounded-bl-sm border border-gray-200">
           <div class="flex items-center">
             <div class="flex space-x-1">
@@ -254,32 +284,55 @@
 
   <!-- Formulario de entrada -->
   <form (ngSubmit)="onSubmit($event)" class="flex flex-col gap-2 mt-2">
-    <!-- Vista previa del archivo -->
-    <div *ngIf="file" class="flex items-center bg-gray-100 p-2 rounded-xl border border-gray-200">
-      <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
-      <span class="text-sm truncate flex-1">{{ file.name }}</span>
-      <button
-        type="button"
-        (click)="clearFile()"
-        class="text-gray-400 hover:text-gray-600"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
+    <!-- Bandeja de archivos adjuntos (hasta 10 CVs) -->
+    <div *ngIf="files.length > 0" class="bg-gray-50 p-2.5 rounded-xl border border-blue-200 mb-1 space-y-2">
+      <div class="flex items-center justify-between text-xs text-gray-600 px-1">
+        <span class="font-medium flex items-center gap-1.5 text-blue-700">
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          {{ files.length }} / {{ maxFiles }} CV(s) adjunto(s)
+        </span>
+        <button type="button" (click)="clearFiles()" class="text-xs text-red-500 hover:text-red-700 transition font-medium">
+          Quitar todos
+        </button>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+        <div
+          *ngFor="let f of files; let i = index"
+          class="flex items-center bg-white px-2.5 py-1 rounded-lg border border-gray-200 text-xs shadow-sm max-w-full"
+        >
+          <svg class="w-3.5 h-3.5 mr-1 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+          <span class="truncate max-w-[150px] font-medium text-gray-700" [title]="f.name">{{ f.name }}</span>
+          <span class="text-gray-400 text-[10px] ml-1">({{ formatFileSize(f.size) }})</span>
+          <button
+            type="button"
+            (click)="removeFile(i)"
+            class="ml-1.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+            [disabled]="isLoading"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
 
+    <!-- Barra de envío de texto y archivos -->
     <div class="flex gap-2 items-center w-full">
       <!-- Botón de archivo -->
       <button
         type="button"
-        class="p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm"
+        class="p-2.5 rounded-full bg-white border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         (click)="onFileButtonClick()"
-        [disabled]="isLoading"
+        [disabled]="isFileInputDisabled()"
+        title="Adjuntar CVs (1 a 10 archivos en .pdf, .docx, .doc, .txt)"
       >
-        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
         </svg>
       </button>
@@ -290,15 +343,15 @@
         type="text"
         [(ngModel)]="input"
         name="input"
-        [placeholder]="file ? 'Enviar con archivo adjunto...' : 'Escribe un mensaje...'"
-        class="w-auto flex-1 p-2 px-4 border border-gray-200 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-100/30 text-base shadow-sm"
+        [placeholder]="files.length > 0 ? 'Instrucciones para los CVs (opcional) o presiona Enviar...' : 'Escribe un mensaje o pega los requerimientos técnicos...'"
+        class="w-auto flex-1 p-2.5 px-4 border border-gray-200 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm md:text-base shadow-sm"
         [disabled]="isInputDisabled()"
       />
 
       <!-- Botón de envío -->
       <button
         type="submit"
-        class="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+        class="p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
         [disabled]="isSubmitDisabled()"
       >
         <svg *ngIf="!isLoading; else loadingIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,10 +366,12 @@
       </button>
     </div>
 
-    <!-- Input de archivo oculto -->
+    <!-- Input de archivo oculto con multiple y formatos permitidos -->
     <input
       #fileInput
       type="file"
+      multiple
+      accept=".pdf,.doc,.docx,.txt"
       (change)="onFileChange($event)"
       class="hidden"
       [disabled]="isFileInputDisabled()"

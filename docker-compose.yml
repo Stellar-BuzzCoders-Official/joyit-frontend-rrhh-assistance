@@ -1,6 +1,6 @@
 services:
-  joyit-frontend-rrhh-assistance:
-    container_name: joyit-frontend-rrhh-assistance
+  rrhh-frontend-assistance:
+    container_name: rrhh-frontend-assistance
     build:
       context: .
       dockerfile: Dockerfile
@@ -14,8 +14,8 @@ services:
       - ./public:/app/public
       - ./src/environments:/app/src/environments
     networks:
-      - joyit_screening_net
+      - rrhh_screening_net
 
 networks:
-  joyit_screening_net:
+  rrhh_screening_net:
     external: true
