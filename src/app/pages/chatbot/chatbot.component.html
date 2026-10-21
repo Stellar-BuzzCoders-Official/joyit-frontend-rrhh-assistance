@@ -1,19 +1,25 @@
 <div class="flex h-screen p-4 overflow-hidden" style="background-color: #eef3ff;">
-  <!-- Sidebar -->
-  <div class="w-80 bg-white rounded-3xl h-full overflow-hidden shadow-sm flex flex-col shrink-0">
+  <!-- Sidebar con animación de colapso / acordeón lateral -->
+  <div
+    class="h-full overflow-hidden shadow-sm flex flex-col shrink-0 transition-all duration-300 ease-in-out"
+    [ngClass]="isSidebarOpen ? 'w-80 opacity-100 mr-4' : 'w-0 opacity-0 -translate-x-full mr-0 pointer-events-none'"
+  >
     <app-sidebar
       #sidebar
       class="w-full h-full flex flex-col min-h-0 overflow-hidden"
       (chatSelected)="onChatSelected($event)"
       (newChat)="onNewChat()"
+      (toggleCollapse)="toggleSidebar()"
     ></app-sidebar>
   </div>
 
   <!-- Chat principal -->
   <app-chat
     #chat
-    class="flex-1 ml-4 h-full flex flex-col min-h-0 overflow-hidden"
+    class="flex-1 h-full flex flex-col min-h-0 overflow-hidden transition-all duration-300"
     [selectedChat]="currentChat"
+    [isSidebarOpen]="isSidebarOpen"
+    (toggleSidebar)="toggleSidebar()"
     (threadUpdated)="sidebar.loadChatHistory()"
   ></app-chat>
 </div>

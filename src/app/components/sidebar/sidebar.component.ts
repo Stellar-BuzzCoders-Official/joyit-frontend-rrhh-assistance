@@ -25,9 +25,11 @@ export class SidebarComponent implements OnInit {
   isLoading = false;
   searchQuery = '';
   isSearching = false;
+  isHistoryExpanded = true;
 
   @Output() chatSelected = new EventEmitter<ChatHistoryItem>();
   @Output() newChat = new EventEmitter<void>();
+  @Output() toggleCollapse = new EventEmitter<void>();
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -37,6 +39,10 @@ export class SidebarComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadChatHistory();
+  }
+
+  toggleHistory(): void {
+    this.isHistoryExpanded = !this.isHistoryExpanded;
   }
 
   async loadChatHistory(): Promise<void> {

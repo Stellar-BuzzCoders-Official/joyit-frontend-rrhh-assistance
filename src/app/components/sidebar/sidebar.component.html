@@ -1,9 +1,22 @@
-<div class="w-full h-full bg-white p-4 flex flex-col rounded-3xl select-none min-h-0">
-  <!-- Título -->
-  <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4 mt-2 shrink-0">
-    <img src="logo.png" alt="" class="h-6 w-auto">
-    RRHH Assistance
-  </h2>
+<div class="w-full h-full bg-white dark:bg-gray-900 p-4 flex flex-col rounded-3xl select-none min-h-0 border border-gray-100 dark:border-gray-800">
+  <!-- Título y botón de colapsar barra lateral -->
+  <div class="flex items-center justify-between mb-4 mt-2 shrink-0">
+    <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+      <img src="logo.png" alt="" class="h-6 w-auto">
+      <span class="truncate">RRHH Assistance</span>
+    </h2>
+
+    <button
+      type="button"
+      (click)="toggleCollapse.emit()"
+      class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer shrink-0"
+      title="Ocultar barra lateral"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+      </svg>
+    </button>
+  </div>
 
   <!-- Botón nuevo chat + lupa -->
   <div class="flex items-center justify-between mb-4 gap-2 shrink-0">
@@ -20,7 +33,7 @@
       type="button"
       (click)="toggleSearch()"
       class="w-9 h-9 flex items-center justify-center rounded-full cursor-pointer hover:scale-105 transition"
-      [ngClass]="isSearching ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+      [ngClass]="isSearching ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'"
       title="Buscar conversación"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -35,17 +48,35 @@
       type="text"
       [(ngModel)]="searchQuery"
       placeholder="Filtrar por título..."
-      class="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+      class="w-full px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:bg-gray-800 dark:text-gray-100"
     />
   </div>
 
-  <!-- Historial Header -->
+  <!-- Historial Header con paleta acordeón -->
   <div class="flex items-center justify-between mb-2 shrink-0">
-    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Historial de conversaciones</h3>
+    <button
+      type="button"
+      (click)="toggleHistory()"
+      class="flex items-center gap-1.5 text-xs font-semibold text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 uppercase tracking-wider transition cursor-pointer select-none"
+      title="Plegar / desplegar conversaciones"
+    >
+      <svg
+        class="w-3.5 h-3.5 text-gray-400 transition-transform duration-200"
+        [ngClass]="{'rotate-180': isHistoryExpanded}"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+      <span>Historial de conversaciones</span>
+      <span *ngIf="chatHistory.length > 0" class="text-[10px] font-normal lowercase text-gray-400">({{ chatHistory.length }})</span>
+    </button>
+
     <button
       type="button"
       (click)="loadChatHistory()"
-      class="text-gray-400 hover:text-blue-600 text-xs p-1 rounded transition"
+      class="text-gray-400 hover:text-blue-500 text-xs p-1 rounded transition cursor-pointer"
       title="Actualizar historial"
     >
       <svg class="w-3.5 h-3.5" [ngClass]="{'animate-spin': isLoading}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,8 +85,11 @@
     </button>
   </div>
 
-  <!-- Lista de conversaciones con scroll -->
-  <div class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0">
+  <!-- Lista de conversaciones con acordeón plegable y scroll -->
+  <div
+    *ngIf="isHistoryExpanded"
+    class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0 transition-all duration-300"
+  >
     <div *ngIf="isLoading && chatHistory.length === 0" class="text-xs text-gray-400 p-4 text-center">
       Cargando historial...
     </div>
@@ -68,7 +102,7 @@
       *ngFor="let chat of filteredChatHistory"
       (click)="selectChat(chat)"
       class="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition group"
-      [ngClass]="selectedChatId === chat.id ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-200 shadow-xs' : 'hover:bg-gray-100 text-gray-700'"
+      [ngClass]="selectedChatId === chat.id ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-800 shadow-xs' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200'"
     >
       <div class="flex items-center gap-2.5 min-w-0 flex-1">
         <svg
@@ -82,7 +116,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
           class="shrink-0"
-          [ngClass]="selectedChatId === chat.id ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'"
+          [ngClass]="selectedChatId === chat.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'"
         >
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
@@ -105,12 +139,22 @@
     </div>
   </div>
 
+  <div
+    *ngIf="!isHistoryExpanded"
+    class="flex-1 flex flex-col items-center justify-center text-xs text-gray-400 italic p-4 select-none"
+  >
+    <svg class="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+    </svg>
+    <span>Historial oculto (haz clic en el título para desplegar)</span>
+  </div>
+
   <!-- Ajustes y perfil -->
-  <div class="mt-auto pt-3 border-t border-gray-100 shrink-0">
+  <div class="mt-auto pt-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
     <!-- Ajustes -->
     <div
       routerLink="/settings"
-      class="flex items-center gap-3 mb-2 cursor-pointer text-gray-600 hover:text-blue-600 transition-colors p-2 rounded-xl hover:bg-gray-50 text-sm font-medium"
+      class="flex items-center gap-3 mb-2 cursor-pointer text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium"
     >
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
@@ -126,7 +170,7 @@
         RR
       </div>
       <div class="flex flex-col min-w-0">
-        <span class="text-gray-900 font-semibold text-xs truncate">Reclutador IA</span>
+        <span class="text-gray-900 dark:text-gray-100 font-semibold text-xs truncate">Reclutador IA</span>
         <span class="text-gray-400 text-[10px] truncate">admin&#64;rrhh.ai</span>
       </div>
     </div>

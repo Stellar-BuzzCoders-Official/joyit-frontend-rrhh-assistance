@@ -36,7 +36,13 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
   @ViewChild('fileInput') fileInputRef!: ElementRef;
 
   @Input() selectedChat: any = null;
+  @Input() isSidebarOpen: boolean = true;
   @Output() threadUpdated = new EventEmitter<string>();
+  @Output() toggleSidebar = new EventEmitter<void>();
+
+  onToggleSidebar(): void {
+    this.toggleSidebar.emit();
+  }
 
   private streamUrl = `${environment.apiBaseUrl}/api/v1/chat/stream`;
   private bulkUploadUrl = `${environment.apiBaseUrl}/api/v1/files/bulk`;
