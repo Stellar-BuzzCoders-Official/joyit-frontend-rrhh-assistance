@@ -91,7 +91,8 @@ export class AuthService {
       auth: {
         clientId: environment.azureAd?.clientId || 'ae7c6bcf-a228-4e18-8c76-c44eab86da03',
         authority: `https://login.microsoftonline.com/${environment.azureAd?.tenantId || '0ceb204d-9306-498e-90d5-e8bdee8f5d58'}`,
-        redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200'
+        redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200',
+        navigateToLoginRequestUrl: false
       },
       cache: {
         cacheLocation: 'sessionStorage' as const,
@@ -103,6 +104,18 @@ export class AuthService {
     await this.msalInstance.initialize();
     await this.msalInstance.handleRedirectPromise().catch(() => null);
     return this.msalInstance;
+  }
+
+  async handlePopupCallback(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (typeof window !== 'undefined' && window.opener && window.opener !== window) {
+      try {
+        const instance = await this.getMsalInstance();
+        await instance.handleRedirectPromise();
+      } catch (err) {
+        console.warn('handlePopupCallback:', err);
+      }
+    }
   }
 
   async loginWithMicrosoft(): Promise<boolean> {
