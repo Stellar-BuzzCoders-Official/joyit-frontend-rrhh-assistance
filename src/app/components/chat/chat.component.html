@@ -43,9 +43,59 @@
           </ng-container>
 
           <ng-template #nonWelcomeBlock>
+            <!-- Barra de Pensamiento y Herramientas (Colapsable / Acordeón) -->
+            <div *ngIf="hasThoughtContent(message)" class="mb-3 rounded-xl border border-indigo-200/80 bg-white/95 shadow-xs overflow-hidden text-xs">
+              <button
+                type="button"
+                class="w-full px-3.5 py-2 flex items-center justify-between font-medium text-slate-700 bg-gradient-to-r from-slate-50 to-indigo-50/50 hover:bg-indigo-50/80 transition-colors cursor-pointer select-none"
+                (click)="toggleThinking(message)"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-100 text-indigo-700 text-xs shrink-0">
+                    🧠
+                  </span>
+                  <span class="font-semibold text-slate-800">Pensamiento y herramientas</span>
+                  <span *ngIf="getThoughtStepsCount(message) > 0" class="px-2 py-0.5 rounded-full bg-indigo-100/80 text-indigo-800 text-[10px] font-semibold">
+                    {{ getThoughtStepsCount(message) }} {{ getThoughtStepsCount(message) === 1 ? 'paso' : 'pasos' }}
+                  </span>
+                  <span *ngIf="message.isStreaming" class="flex items-center gap-1.5 text-[11px] text-indigo-600 animate-pulse font-medium">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                    {{ streamingStatusText || 'Razonando...' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                  <span>{{ message.isThinkingExpanded ? 'Ocultar' : 'Mostrar' }}</span>
+                  <svg class="w-3.5 h-3.5 transition-transform duration-200" [ngClass]="{'rotate-180': message.isThinkingExpanded}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </button>
+
+              <!-- Panel expandible de pensamiento y auditoría -->
+              <div *ngIf="message.isThinkingExpanded" class="p-3.5 border-t border-indigo-100 bg-slate-50/70 space-y-2.5 max-h-80 overflow-y-auto">
+                <div *ngFor="let step of message.thoughtSteps" class="p-2.5 rounded-lg border bg-white shadow-2xs"
+                     [ngClass]="{
+                       'border-emerald-200 bg-emerald-50/40': step.status === 'completed',
+                       'border-amber-200 bg-amber-50/40': step.status === 'warning',
+                       'border-indigo-100': !step.status
+                     }">
+                  <div class="font-medium text-slate-800 text-xs flex items-center justify-between">
+                    <span>{{ step.title }}</span>
+                  </div>
+                  <p *ngIf="step.detail" class="mt-1 text-[11px] text-slate-600 whitespace-pre-wrap font-mono bg-slate-50 p-2 rounded border border-slate-100">{{ step.detail }}</p>
+                </div>
+
+                <!-- Desglose textual detallado del análisis si existiera -->
+                <div *ngIf="hasDetailedReasoning(message)" class="pt-2 border-t border-slate-200">
+                  <span class="font-semibold text-slate-700 block mb-1">Análisis y razonamiento detallado:</span>
+                  <p class="whitespace-pre-wrap text-[11px] text-slate-600 bg-white p-2.5 rounded border border-slate-200 leading-relaxed">{{ getDetailedReasoning(message) }}</p>
+                </div>
+              </div>
+            </div>
+
             <!-- Mensaje con reporte técnico -->
             <div *ngIf="hasTechnicalReport(message); else regularMessage">
-              <p *ngIf="getMessageDisplayContent(message)" class="whitespace-pre-wrap mb-4">{{ getMessageDisplayContent(message) }}</p>
+              <p *ngIf="getExecutiveSummary(message)" class="whitespace-pre-wrap mb-4">{{ getExecutiveSummary(message) }}</p>
 
               <!-- Reporte Técnico Detallado -->
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-200 shadow-sm">
@@ -249,7 +299,7 @@
               </div>
               <ng-template #textMessage>
                 <p class="whitespace-pre-wrap leading-relaxed">
-                  {{ getMessageDisplayContent(message) }}
+                  {{ message.role === 'assistant' ? getExecutiveSummary(message) : getMessageDisplayContent(message) }}
                   <span *ngIf="message.isStreaming" class="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse align-middle"></span>
                 </p>
               </ng-template>

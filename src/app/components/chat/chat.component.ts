@@ -10,7 +10,14 @@ interface AttachedFile {
   size: number;
 }
 
-interface MessageType {
+export interface ThoughtStep {
+  type: 'tool' | 'grounding' | 'judge' | 'thought';
+  title: string;
+  detail?: string;
+  status?: 'completed' | 'warning' | 'running';
+}
+
+export interface MessageType {
   id: string;
   content: string | any;
   role: 'user' | 'assistant' | 'system';
@@ -20,6 +27,8 @@ interface MessageType {
   technicalReport?: any;
   technical_report?: any;
   isStreaming?: boolean;
+  thoughtSteps?: ThoughtStep[];
+  isThinkingExpanded?: boolean;
 }
 
 type ProcessPhase = 'request_requirements' | 'upload_cv_and_match' | 'analyzing';
@@ -151,7 +160,25 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
         if (data.technical_report) {
           for (let i = loadedMessages.length - 1; i >= 0; i--) {
             if (loadedMessages[i].role === 'assistant') {
-              loadedMessages[i].technicalReport = data.technical_report;
+              const rep = data.technical_report;
+              loadedMessages[i].technicalReport = rep;
+              const steps: ThoughtStep[] = [
+                {
+                  type: 'tool',
+                  title: '🔍 Evaluación Técnica de CV',
+                  detail: `Candidato: ${rep.personalInfo?.name || 'Evaluado'}. Puesto: ${rep.personalInfo?.position || 'Definido'}`,
+                  status: 'completed'
+                }
+              ];
+              if (rep.isGrounded !== undefined) {
+                steps.push({
+                  type: 'judge',
+                  title: rep.isGrounded && !rep.requiresHumanReview ? '⚖️ Auditoría de Grounding: Aprobado' : '⚖️ Auditoría de Grounding: Discrepancias Detectadas',
+                  detail: rep.judgeFeedback || 'Auditado contra el CV.',
+                  status: rep.isGrounded && !rep.requiresHumanReview ? 'completed' : 'warning'
+                });
+              }
+              loadedMessages[i].thoughtSteps = steps;
               break;
             }
           }
@@ -486,18 +513,37 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
 
       case 'input_grounding':
         this.streamingStatusText = '🛡️ Validando adecuación de requerimientos y políticas de seguridad...';
+        if (!assistantMessage.thoughtSteps) assistantMessage.thoughtSteps = [];
+        assistantMessage.thoughtSteps.push({
+          type: 'grounding',
+          title: '🛡️ Seguridad & Prompt Shields',
+          detail: data.is_safe ? 'Entrada evaluada y aprobada (sin inyecciones de prompt).' : `Guardrail activado: ${data.safety_reason}`,
+          status: data.is_safe ? 'completed' : 'warning'
+        });
         break;
 
       case 'tool_start':
+        let toolTitle = data.tool;
         if (data.tool === 'set_job_requirements') {
           this.streamingStatusText = '📋 Guardando y estructurando perfil del puesto...';
+          toolTitle = '📋 Estructuración de Requisitos Técnicos';
         } else if (data.tool === 'evaluate_cv') {
           this.streamingStatusText = '🔍 Evaluando competencias del CV contra los requerimientos técnicos...';
+          toolTitle = '🔍 Evaluación Técnica de CV';
         } else if (data.tool === 'search_talent_pool') {
           this.streamingStatusText = '👥 Consultando candidatos afines en el Talent Pool histórico (RAG)...';
+          toolTitle = '👥 Búsqueda Semántica en Talent Pool';
         } else {
           this.streamingStatusText = `⚙️ Ejecutando herramienta: ${data.tool}...`;
+          toolTitle = `⚙️ Herramienta: ${data.tool}`;
         }
+        if (!assistantMessage.thoughtSteps) assistantMessage.thoughtSteps = [];
+        assistantMessage.thoughtSteps.push({
+          type: 'tool',
+          title: toolTitle,
+          detail: data.args ? (typeof data.args === 'object' ? JSON.stringify(data.args, null, 2) : String(data.args)) : undefined,
+          status: 'completed'
+        });
         break;
 
       case 'token':
@@ -518,6 +564,14 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
           if (data.reasoning || data.issues) {
             assistantMessage.technicalReport.judgeFeedback = data.reasoning || (Array.isArray(data.issues) ? data.issues.join('; ') : '');
           }
+
+          if (!assistantMessage.thoughtSteps) assistantMessage.thoughtSteps = [];
+          assistantMessage.thoughtSteps.push({
+            type: 'judge',
+            title: isApproved ? '⚖️ Auditoría de Grounding: Aprobado (100% verificado)' : '⚖️ Auditoría de Grounding: Discrepancias Detectadas',
+            detail: (data.reasoning ? `Dictamen: ${data.reasoning}\n\n` : '') + (data.issues && data.issues.length > 0 ? `Discrepancias:\n• ${data.issues.join('\n• ')}` : ''),
+            status: isApproved ? 'completed' : 'warning'
+          });
         }
         this.streamingStatusText = '⚖️ Auditoría de grounding del sub-agente auditor completada.';
         break;
@@ -644,5 +698,69 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
 
   isFileInputDisabled(): boolean {
     return this.isLoading || this.files.length >= this.maxFiles;
+  }
+
+  toggleThinking(message: MessageType): void {
+    message.isThinkingExpanded = !message.isThinkingExpanded;
+  }
+
+  hasThoughtContent(message: MessageType): boolean {
+    if (message.role !== 'assistant') return false;
+    return !!(
+      (message.thoughtSteps && message.thoughtSteps.length > 0) ||
+      message.isStreaming ||
+      this.hasDetailedReasoning(message)
+    );
+  }
+
+  getThoughtStepsCount(message: MessageType): number {
+    return message.thoughtSteps ? message.thoughtSteps.length : 0;
+  }
+
+  hasDetailedReasoning(message: MessageType): boolean {
+    return !!this.getDetailedReasoning(message);
+  }
+
+  private splitMessageContent(message: MessageType): { executive: string; reasoning: string } {
+    const raw = this.getMessageDisplayContent(message);
+    if (!raw || raw.length < 200) {
+      return { executive: raw, reasoning: '' };
+    }
+
+    const splitMarkers = [
+      'Observaciones clave:',
+      'Verificación por requisito',
+      'Discrepancias detectadas',
+      'Gracias por la observación del sub-agente',
+      'Siguientes pasos sugeridos',
+      'Acciones recomendadas'
+    ];
+
+    for (const marker of splitMarkers) {
+      const idx = raw.indexOf(marker);
+      if (idx > 50) {
+        return {
+          executive: raw.substring(0, idx).trim(),
+          reasoning: raw.substring(idx).trim()
+        };
+      }
+    }
+
+    const paragraphs = raw.split('\n\n');
+    if (paragraphs.length >= 3 && raw.length > 450) {
+      const executive = paragraphs.slice(0, 2).join('\n\n').trim();
+      const reasoning = paragraphs.slice(2).join('\n\n').trim();
+      return { executive, reasoning };
+    }
+
+    return { executive: raw, reasoning: '' };
+  }
+
+  getExecutiveSummary(message: MessageType): string {
+    return this.splitMessageContent(message).executive;
+  }
+
+  getDetailedReasoning(message: MessageType): string {
+    return this.splitMessageContent(message).reasoning;
   }
 }
