@@ -95,27 +95,48 @@ export class AuthService {
         navigateToLoginRequestUrl: false
       },
       cache: {
-        cacheLocation: 'sessionStorage' as const,
+        cacheLocation: 'localStorage' as const,
         storeAuthStateInCookie: false
       }
     };
 
     this.msalInstance = new PublicClientApplication(msalConfig);
     await this.msalInstance.initialize();
-    await this.msalInstance.handleRedirectPromise().catch(() => null);
     return this.msalInstance;
   }
 
-  async handlePopupCallback(): Promise<void> {
-    if (!isPlatformBrowser(this.platformId)) return;
-    if (typeof window !== 'undefined' && window.opener && window.opener !== window) {
-      try {
-        const instance = await this.getMsalInstance();
-        await instance.handleRedirectPromise();
-      } catch (err) {
-        console.warn('handlePopupCallback:', err);
+  async initAuth(): Promise<boolean> {
+    if (!isPlatformBrowser(this.platformId)) return false;
+
+    try {
+      const instance = await this.getMsalInstance();
+      const response = await instance.handleRedirectPromise();
+
+      if (response && response.account) {
+        const account = response.account;
+        const token = response.idToken || response.accessToken;
+
+        localStorage.setItem('access_token', token);
+        localStorage.setItem('token_type', 'Bearer');
+        localStorage.setItem('user_data', JSON.stringify({
+          id: account.homeAccountId || account.localAccountId,
+          userID: account.homeAccountId || account.localAccountId,
+          email: account.username,
+          name: account.name || account.username,
+          role: 'recruiter'
+        }));
+
+        this.isAuthenticatedSubject.next(true);
+        return true;
       }
+    } catch (err) {
+      console.error('Error procesando respuesta de Microsoft Entra ID:', err);
     }
+    return false;
+  }
+
+  async handlePopupCallback(): Promise<void> {
+    await this.initAuth();
   }
 
   async loginWithMicrosoft(): Promise<boolean> {
@@ -123,8 +144,6 @@ export class AuthService {
 
     try {
       const instance = await this.getMsalInstance();
-
-      // Limpiar cualquier bloqueo de interacción anterior
       this.clearMsalInteractionLocks();
 
       let loginResponse = null;
@@ -138,13 +157,6 @@ export class AuthService {
         } catch {
           loginResponse = null;
         }
-      }
-
-      if (!loginResponse) {
-        loginResponse = await instance.loginPopup({
-          scopes: ['openid', 'profile', 'email'],
-          prompt: 'select_account'
-        });
       }
 
       if (loginResponse && loginResponse.account) {
@@ -164,6 +176,12 @@ export class AuthService {
         this.isAuthenticatedSubject.next(true);
         return true;
       }
+
+      // Redirección directa en la misma ventana para evitar bloqueos de popup y bucles
+      await instance.loginRedirect({
+        scopes: ['openid', 'profile', 'email'],
+        prompt: 'select_account'
+      });
       return false;
     } catch (err: any) {
       this.clearMsalInteractionLocks();
