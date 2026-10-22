@@ -61,6 +61,56 @@ export class AuthService {
       );
   }
 
+  async loginWithMicrosoft(): Promise<boolean> {
+    if (!isPlatformBrowser(this.platformId)) return false;
+
+    try {
+      const { PublicClientApplication } = await import('@azure/msal-browser');
+
+      const msalConfig = {
+        auth: {
+          clientId: environment.azureAd?.clientId || 'ae7c6bcf-a228-4e18-8c76-c44eab86da03',
+          authority: `https://login.microsoftonline.com/${environment.azureAd?.tenantId || '0ceb204d-9306-498e-90d5-e8bdee8f5d58'}`,
+          redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200'
+        },
+        cache: {
+          cacheLocation: 'localStorage' as const,
+          storeAuthStateInCookie: false
+        }
+      };
+
+      const msalInstance = new PublicClientApplication(msalConfig);
+      await msalInstance.initialize();
+
+      const loginRequest = {
+        scopes: ['openid', 'profile', 'email']
+      };
+
+      const loginResponse = await msalInstance.loginPopup(loginRequest);
+      if (loginResponse && loginResponse.account) {
+        const account = loginResponse.account;
+        const token = loginResponse.idToken || loginResponse.accessToken;
+
+        localStorage.setItem('access_token', token);
+        localStorage.setItem('token_type', 'Bearer');
+        localStorage.setItem('user_data', JSON.stringify({
+          id: account.homeAccountId || account.localAccountId,
+          userID: account.homeAccountId || account.localAccountId,
+          email: account.username,
+          name: account.name || account.username,
+          role: 'recruiter'
+        }));
+
+        this.isAuthenticatedSubject.next(true);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error durante autenticación con Microsoft Entra ID:', err);
+      throw err;
+    }
+  }
+
   getUserId(): string {
     if (isPlatformBrowser(this.platformId)) {
       const stored = localStorage.getItem('user_data');

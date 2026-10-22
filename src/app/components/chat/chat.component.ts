@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth/auth';
+import { PdfExportService } from '../../services/pdf-export.service';
 
 interface AttachedFile {
   name: string;
@@ -82,7 +83,8 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
     @Inject(PLATFORM_ID) private platformId: Object,
     private http: HttpClient,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private pdfExportService: PdfExportService
   ) {}
 
   ngOnInit() {
@@ -721,38 +723,81 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
     return !!this.getDetailedReasoning(message);
   }
 
+  hasCandidateReports(): boolean {
+    return this.messages.some(m => this.hasTechnicalReport(m));
+  }
+
+  exportCandidatePdf(report: any, candidateFallbackName?: string): void {
+    this.pdfExportService.exportCandidateReport(report, candidateFallbackName);
+  }
+
+  exportSummaryPdf(): void {
+    this.pdfExportService.exportSummaryReport(this.messages, this.conversationId);
+  }
+
+  isSkillCumple(status: string | undefined): boolean {
+    return (status || '').trim().toLowerCase() === 'cumple';
+  }
+
+  cleanSkillStatus(status: string | undefined): string {
+    return this.isSkillCumple(status) ? 'Cumple' : 'No Cumple';
+  }
+
   private splitMessageContent(message: MessageType): { executive: string; reasoning: string } {
     const raw = this.getMessageDisplayContent(message);
-    if (!raw || raw.length < 150) {
+    if (!raw) {
+      return { executive: '', reasoning: '' };
+    }
+
+    // Si el mensaje cuenta con reporte técnico estructurado, filtrar el marco de cumplimiento redundante
+    if (this.hasTechnicalReport(message)) {
+      const lines = raw.split('\n');
+      const filteredExecutiveLines: string[] = [];
+      const movedToReasoningLines: string[] = [];
+
+      const redundantPatterns = [
+        /marco\s+de\s+cumplimiento/i,
+        /cumplimiento\s+indispensables?/i,
+        /cumplimiento\s+deseables?/i,
+        /total\s+indispensables?/i,
+        /total\s+deseables?/i,
+        /requisitos?\s+indispensables?:/i,
+        /requisitos?\s+deseables?:/i,
+        /puntaje\s+global/i,
+        /verificación\s+por\s+requisito/i,
+        /discrepancias?\s+detectadas?/i,
+        /observaciones?\s+sobre\s+discrepancias/i,
+        /gracias\s+por\s+la\s+observación/i
+      ];
+
+      let isFiltering = false;
+      for (const line of lines) {
+        const isRedundant = redundantPatterns.some(p => p.test(line));
+        if (isRedundant) {
+          isFiltering = true;
+          movedToReasoningLines.push(line);
+        } else if (isFiltering && (line.trim().startsWith('-') || line.trim().startsWith('*') || line.trim().startsWith('•'))) {
+          movedToReasoningLines.push(line);
+        } else {
+          isFiltering = false;
+          filteredExecutiveLines.push(line);
+        }
+      }
+
+      let cleanExecutive = filteredExecutiveLines.join('\n').trim();
+      cleanExecutive = cleanExecutive.replace(/\n{3,}/g, '\n\n');
+
+      return {
+        executive: cleanExecutive,
+        reasoning: movedToReasoningLines.join('\n').trim()
+      };
+    }
+
+    if (raw.length < 150) {
       return { executive: raw, reasoning: '' };
     }
 
-    // Handle internal sub-agent dialogue like "Gracias por la observación del sub-agente"
-    if (raw.includes('Gracias por la observación del sub-agente')) {
-      const idx = raw.indexOf('Gracias por la observación del sub-agente');
-      if (idx > 50) {
-        return {
-          executive: raw.substring(0, idx).trim(),
-          reasoning: raw.substring(idx).trim()
-        };
-      } else {
-        // Starts with sub-agent dialogue; separate preamble from candidate overview
-        const candIdx = raw.search(/\n\s*1\)\s+|\n\s*-\s*\*\*Candidato/);
-        if (candIdx > 0) {
-          const preamble = raw.substring(0, candIdx).trim();
-          const rest = raw.substring(candIdx).trim();
-          const reqIdx = rest.indexOf('Verificación por requisito');
-          if (reqIdx > 0) {
-            return {
-              executive: rest.substring(0, reqIdx).trim(),
-              reasoning: `${preamble}\n\n${rest.substring(reqIdx).trim()}`
-            };
-          }
-          return { executive: rest, reasoning: preamble };
-        }
-      }
-    }
-
+    // Default splitting for non-report messages
     const splitMarkers = [
       'Verificación por requisito',
       'Observaciones sobre discrepancias',

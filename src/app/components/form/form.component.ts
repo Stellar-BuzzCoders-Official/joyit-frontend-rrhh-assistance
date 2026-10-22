@@ -13,6 +13,7 @@ import { AuthService, LoginRequest } from '../../services/auth/auth';
 export class FormComponent implements OnInit {
   loginForm!: FormGroup;
   isLoading = false;
+  isMicrosoftLoading = false;
   errorMessage = '';
 
   constructor(
@@ -20,6 +21,22 @@ export class FormComponent implements OnInit {
     private authService: AuthService,
     private router: Router
   ) {}
+
+  async onMicrosoftLogin(): Promise<void> {
+    this.isMicrosoftLoading = true;
+    this.errorMessage = '';
+    try {
+      const success = await this.authService.loginWithMicrosoft();
+      if (success) {
+        this.router.navigate(['/chatbot']);
+      }
+    } catch (error: any) {
+      console.error('Error en autenticación Entra ID:', error);
+      this.errorMessage = 'No se pudo completar el inicio de sesión con Microsoft. Intente nuevamente o use credenciales locales.';
+    } finally {
+      this.isMicrosoftLoading = false;
+    }
+  }
 
   ngOnInit(): void {
     this.initializeForm();
