@@ -61,32 +61,79 @@ export class AuthService {
       );
   }
 
+  private msalInstance: any = null;
+
+  private clearMsalInteractionLocks(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const storages = [sessionStorage, localStorage];
+      for (const storage of storages) {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i);
+          if (key && (key.includes('interaction_status') || key.includes('interaction.status') || key.includes('interaction_in_progress'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => storage.removeItem(k));
+      }
+    } catch (e) {
+      console.warn('No se pudieron limpiar las claves de interacción de MSAL:', e);
+    }
+  }
+
+  private async getMsalInstance(): Promise<any> {
+    if (this.msalInstance) return this.msalInstance;
+
+    const { PublicClientApplication } = await import('@azure/msal-browser');
+
+    const msalConfig = {
+      auth: {
+        clientId: environment.azureAd?.clientId || 'ae7c6bcf-a228-4e18-8c76-c44eab86da03',
+        authority: `https://login.microsoftonline.com/${environment.azureAd?.tenantId || '0ceb204d-9306-498e-90d5-e8bdee8f5d58'}`,
+        redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200'
+      },
+      cache: {
+        cacheLocation: 'sessionStorage' as const,
+        storeAuthStateInCookie: false
+      }
+    };
+
+    this.msalInstance = new PublicClientApplication(msalConfig);
+    await this.msalInstance.initialize();
+    await this.msalInstance.handleRedirectPromise().catch(() => null);
+    return this.msalInstance;
+  }
+
   async loginWithMicrosoft(): Promise<boolean> {
     if (!isPlatformBrowser(this.platformId)) return false;
 
     try {
-      const { PublicClientApplication } = await import('@azure/msal-browser');
+      const instance = await this.getMsalInstance();
 
-      const msalConfig = {
-        auth: {
-          clientId: environment.azureAd?.clientId || 'ae7c6bcf-a228-4e18-8c76-c44eab86da03',
-          authority: `https://login.microsoftonline.com/${environment.azureAd?.tenantId || '0ceb204d-9306-498e-90d5-e8bdee8f5d58'}`,
-          redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200'
-        },
-        cache: {
-          cacheLocation: 'localStorage' as const,
-          storeAuthStateInCookie: false
+      // Limpiar cualquier bloqueo de interacción anterior
+      this.clearMsalInteractionLocks();
+
+      let loginResponse = null;
+      const accounts = instance.getAllAccounts();
+      if (accounts && accounts.length > 0) {
+        try {
+          loginResponse = await instance.acquireTokenSilent({
+            account: accounts[0],
+            scopes: ['openid', 'profile', 'email']
+          });
+        } catch {
+          loginResponse = null;
         }
-      };
+      }
 
-      const msalInstance = new PublicClientApplication(msalConfig);
-      await msalInstance.initialize();
+      if (!loginResponse) {
+        loginResponse = await instance.loginPopup({
+          scopes: ['openid', 'profile', 'email'],
+          prompt: 'select_account'
+        });
+      }
 
-      const loginRequest = {
-        scopes: ['openid', 'profile', 'email']
-      };
-
-      const loginResponse = await msalInstance.loginPopup(loginRequest);
       if (loginResponse && loginResponse.account) {
         const account = loginResponse.account;
         const token = loginResponse.idToken || loginResponse.accessToken;
@@ -105,7 +152,8 @@ export class AuthService {
         return true;
       }
       return false;
-    } catch (err) {
+    } catch (err: any) {
+      this.clearMsalInteractionLocks();
       console.error('Error durante autenticación con Microsoft Entra ID:', err);
       throw err;
     }
