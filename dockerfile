@@ -1,18 +1,37 @@
-# Imagen base de Node.js
-FROM node:22-alpine
+# ==============================================================================
+# STAGE 1: Compilación de la aplicación Angular (SSR)
+# ==============================================================================
+FROM node:22-alpine AS builder
 
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos necesarios
+# Instalar dependencias
 COPY package*.json ./
 RUN npm install
 
-# Copiar el resto del código fuente
+# Copiar código fuente y compilar bundle de producción
 COPY . .
+RUN npm run build
 
-# Exponer el puerto por defecto de Angular
-EXPOSE 4200
+# ==============================================================================
+# STAGE 2: Servidor Node.js para producción (SSR Express Server)
+# ==============================================================================
+FROM node:22-alpine AS runner
 
-# Ejecutar Angular en modo desarrollo
-CMD ["npx", "ng", "serve", "--host", "0.0.0.0", "--port", "4200"]
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=4000
+
+# Copiar manifiestos e instalar solo dependencias de producción
+COPY package*.json ./
+RUN npm install --omit=dev
+
+# Copiar los artefactos compilados desde el builder
+COPY --from=builder /app/dist/rrhh-assitance-ft ./dist/rrhh-assitance-ft
+
+# Exponer el puerto configurado
+EXPOSE 4000
+
+# Ejecutar el servidor SSR en producción
+CMD ["node", "dist/rrhh-assitance-ft/server/server.mjs"]
