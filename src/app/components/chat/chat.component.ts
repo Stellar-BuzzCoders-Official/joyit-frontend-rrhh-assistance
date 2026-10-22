@@ -723,17 +723,43 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
 
   private splitMessageContent(message: MessageType): { executive: string; reasoning: string } {
     const raw = this.getMessageDisplayContent(message);
-    if (!raw || raw.length < 200) {
+    if (!raw || raw.length < 150) {
       return { executive: raw, reasoning: '' };
     }
 
+    // Handle internal sub-agent dialogue like "Gracias por la observación del sub-agente"
+    if (raw.includes('Gracias por la observación del sub-agente')) {
+      const idx = raw.indexOf('Gracias por la observación del sub-agente');
+      if (idx > 50) {
+        return {
+          executive: raw.substring(0, idx).trim(),
+          reasoning: raw.substring(idx).trim()
+        };
+      } else {
+        // Starts with sub-agent dialogue; separate preamble from candidate overview
+        const candIdx = raw.search(/\n\s*1\)\s+|\n\s*-\s*\*\*Candidato/);
+        if (candIdx > 0) {
+          const preamble = raw.substring(0, candIdx).trim();
+          const rest = raw.substring(candIdx).trim();
+          const reqIdx = rest.indexOf('Verificación por requisito');
+          if (reqIdx > 0) {
+            return {
+              executive: rest.substring(0, reqIdx).trim(),
+              reasoning: `${preamble}\n\n${rest.substring(reqIdx).trim()}`
+            };
+          }
+          return { executive: rest, reasoning: preamble };
+        }
+      }
+    }
+
     const splitMarkers = [
-      'Observaciones clave:',
       'Verificación por requisito',
+      'Observaciones sobre discrepancias',
       'Discrepancias detectadas',
-      'Gracias por la observación del sub-agente',
-      'Siguientes pasos sugeridos',
-      'Acciones recomendadas'
+      'Observaciones clave:',
+      'Confirmación de correcciones realizadas',
+      'Acciones recomendadas y siguientes pasos'
     ];
 
     for (const marker of splitMarkers) {
@@ -747,7 +773,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
     }
 
     const paragraphs = raw.split('\n\n');
-    if (paragraphs.length >= 3 && raw.length > 450) {
+    if (paragraphs.length >= 3 && raw.length > 350) {
       const executive = paragraphs.slice(0, 2).join('\n\n').trim();
       const reasoning = paragraphs.slice(2).join('\n\n').trim();
       return { executive, reasoning };
