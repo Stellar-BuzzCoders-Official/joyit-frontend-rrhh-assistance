@@ -1,1 +1,10 @@
-<router-outlet></router-outlet>
+<ng-container *ngIf="isPopup; else normalApp">
+  <div class="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans p-6 text-center select-none">
+    <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+    <h3 class="text-lg font-semibold mb-1">Autenticación con Microsoft completada</h3>
+    <p class="text-sm text-slate-400">Esta ventana se cerrará automáticamente en unos segundos...</p>
+  </div>
+</ng-container>
+<ng-template #normalApp>
+  <router-outlet></router-outlet>
+</ng-template>
