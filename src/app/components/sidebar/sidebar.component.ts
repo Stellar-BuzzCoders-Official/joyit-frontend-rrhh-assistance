@@ -26,6 +26,9 @@ export class SidebarComponent implements OnInit {
   searchQuery = '';
   isSearching = false;
   isHistoryExpanded = true;
+  userName = 'Reclutador IA';
+  userEmail = 'admin@rrhh.ai';
+  userInitials = 'RR';
 
   @Output() chatSelected = new EventEmitter<ChatHistoryItem>();
   @Output() newChat = new EventEmitter<void>();
@@ -38,7 +41,34 @@ export class SidebarComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.loadUserInfo();
     this.loadChatHistory();
+  }
+
+  loadUserInfo(): void {
+    const user = this.authService.getUser();
+    if (user) {
+      if (user.name) {
+        this.userName = user.name;
+      }
+      if (user.email) {
+        this.userEmail = user.email;
+      }
+      this.userInitials = this.getInitials(this.userName || this.userEmail);
+    }
+  }
+
+  getInitials(text: string): string {
+    if (!text) return 'RR';
+    const clean = text.trim();
+    if (clean.includes('@')) {
+      return clean.slice(0, 2).toUpperCase();
+    }
+    const parts = clean.split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase();
   }
 
   toggleHistory(): void {

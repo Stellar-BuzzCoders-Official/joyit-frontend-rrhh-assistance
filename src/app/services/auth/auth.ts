@@ -105,6 +105,32 @@ export class AuthService {
     return this.msalInstance;
   }
 
+  private extractUserData(account: any): { id: string; userID: string; email: string; name: string; role: string } {
+    const claims = (account?.idTokenClaims || {}) as Record<string, any>;
+    const email = account?.username || claims['preferred_username'] || claims['email'] || claims['upn'] || 'usuario@microsoft.com';
+    const name = account?.name || claims['name'] || email.split('@')[0];
+    const id = account?.homeAccountId || account?.localAccountId || claims['oid'] || claims['sub'] || 'a8f0569a-46fd-457f-847e-e233af403114';
+    return {
+      id,
+      userID: id,
+      email,
+      name,
+      role: 'recruiter'
+    };
+  }
+
+  getUser(): { id?: string; userID?: string; email?: string; name?: string; role?: string } | null {
+    if (isPlatformBrowser(this.platformId)) {
+      const stored = localStorage.getItem('user_data');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {}
+      }
+    }
+    return null;
+  }
+
   async initAuth(): Promise<boolean> {
     if (!isPlatformBrowser(this.platformId)) return false;
 
@@ -115,16 +141,11 @@ export class AuthService {
       if (response && response.account) {
         const account = response.account;
         const token = response.idToken || response.accessToken;
+        const userData = this.extractUserData(account);
 
         localStorage.setItem('access_token', token);
         localStorage.setItem('token_type', 'Bearer');
-        localStorage.setItem('user_data', JSON.stringify({
-          id: account.homeAccountId || account.localAccountId,
-          userID: account.homeAccountId || account.localAccountId,
-          email: account.username,
-          name: account.name || account.username,
-          role: 'recruiter'
-        }));
+        localStorage.setItem('user_data', JSON.stringify(userData));
 
         this.isAuthenticatedSubject.next(true);
         return true;
@@ -162,16 +183,11 @@ export class AuthService {
       if (loginResponse && loginResponse.account) {
         const account = loginResponse.account;
         const token = loginResponse.idToken || loginResponse.accessToken;
+        const userData = this.extractUserData(account);
 
         localStorage.setItem('access_token', token);
         localStorage.setItem('token_type', 'Bearer');
-        localStorage.setItem('user_data', JSON.stringify({
-          id: account.homeAccountId || account.localAccountId,
-          userID: account.homeAccountId || account.localAccountId,
-          email: account.username,
-          name: account.name || account.username,
-          role: 'recruiter'
-        }));
+        localStorage.setItem('user_data', JSON.stringify(userData));
 
         this.isAuthenticatedSubject.next(true);
         return true;

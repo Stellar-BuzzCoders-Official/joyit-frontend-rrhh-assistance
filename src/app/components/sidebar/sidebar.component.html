@@ -156,11 +156,11 @@
     <!-- Usuario -->
     <div class="flex items-center gap-3 px-2 py-1">
       <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm shrink-0">
-        RR
+        {{ userInitials }}
       </div>
       <div class="flex flex-col min-w-0">
-        <span class="text-gray-900 dark:text-gray-100 font-semibold text-xs truncate">Reclutador IA</span>
-        <span class="text-gray-400 text-[10px] truncate">admin&#64;rrhh.ai</span>
+        <span class="text-gray-900 dark:text-gray-100 font-semibold text-xs truncate" [title]="userName">{{ userName }}</span>
+        <span class="text-gray-400 text-[10px] truncate" [title]="userEmail">{{ userEmail }}</span>
       </div>
     </div>
   </div>
