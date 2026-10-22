@@ -26,8 +26,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          username: ${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_609011C51CED4AED80AA236DA8FF4707 || secrets.ACR_USERNAME }}
+          password: ${{ secrets.AZUREAPPSERVICE_CONTAINERPASSWORD_3EF65A14543C47BFA11221209405C978 || secrets.ACR_PASSWORD }}
 
       - name: Build and push container image to ACR
         uses: docker/build-push-action@v5
@@ -50,5 +50,5 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           slot-name: 'production'
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_12524D7178094139B87783C130283D39 || secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           images: '${{ env.REGISTRY_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
