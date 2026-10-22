@@ -23,14 +23,24 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.isPopup) {
-      this.authService.handlePopupCallback();
+      this.authService.handlePopupCallback().finally(() => {
+        setTimeout(() => {
+          try {
+            if (typeof window !== 'undefined' && window.opener) {
+              window.close();
+            }
+          } catch {}
+        }, 800);
+      });
+
+      // Fallback de cierre por si el callback no emite evento
       setTimeout(() => {
         try {
           if (typeof window !== 'undefined' && window.opener) {
             window.close();
           }
         } catch {}
-      }, 1500);
+      }, 2500);
     }
   }
 }

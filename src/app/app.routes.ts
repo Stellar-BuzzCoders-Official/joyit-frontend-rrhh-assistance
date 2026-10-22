@@ -9,7 +9,7 @@ const isPopup = typeof window !== 'undefined' && !!(window.opener && window.open
 export const routes: Routes = isPopup
   ? []
   : [
-      { path: '', redirectTo: 'home', pathMatch: 'full' },
+      { path: '', component: HomeComponent },
       { path: 'home', component: HomeComponent },
       { path: 'login', component: LoginComponent },
       { path: 'chatbot', component: ChatbotComponent },
