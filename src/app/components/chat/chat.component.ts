@@ -29,6 +29,7 @@ export interface MessageType {
   validate?: boolean;
   technicalReport?: any;
   technical_report?: any;
+  technicalReports?: any[];
   isStreaming?: boolean;
   thoughtSteps?: ThoughtStep[];
   isThinkingExpanded?: boolean;
@@ -161,27 +162,30 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
           };
         });
 
-        // Si el estado contiene reporte técnico, vincularlo al último mensaje del asistente
-        if (data.technical_report) {
+        // Si el estado contiene reporte(s) técnico(s), vincularlo(s) al último mensaje del asistente
+        const rawReports = data.technical_reports || data.technicalReports || (data.technical_report ? [data.technical_report] : []);
+        if (rawReports && rawReports.length > 0) {
           for (let i = loadedMessages.length - 1; i >= 0; i--) {
             if (loadedMessages[i].role === 'assistant') {
-              const rep = data.technical_report;
-              loadedMessages[i].technicalReport = rep;
-              const steps: ThoughtStep[] = [
-                {
-                  type: 'tool',
-                  title: 'Evaluación Técnica de CV',
-                  detail: `Candidato: ${rep.personalInfo?.name || 'Evaluado'}. Puesto: ${rep.personalInfo?.position || 'Definido'}`,
-                  status: 'completed'
-                }
-              ];
-              if (rep.isGrounded !== undefined) {
+              loadedMessages[i].technicalReports = rawReports;
+              loadedMessages[i].technicalReport = rawReports[rawReports.length - 1];
+              const steps: ThoughtStep[] = [];
+              for (const rep of rawReports) {
+                const cName = rep?.personalInfo?.name || 'Candidato';
                 steps.push({
-                  type: 'judge',
-                  title: rep.isGrounded && !rep.requiresHumanReview ? 'Auditoría de Grounding: Aprobado' : 'Auditoría de Grounding: Discrepancias Detectadas',
-                  detail: rep.judgeFeedback || 'Auditado contra el CV.',
-                  status: rep.isGrounded && !rep.requiresHumanReview ? 'completed' : 'warning'
+                  type: 'tool',
+                  title: `Evaluación Técnica: ${cName}`,
+                  detail: `Puesto: ${rep?.personalInfo?.position || 'Definido'} | Exp: ${rep?.personalInfo?.experienceYears || 0} años`,
+                  status: 'completed'
                 });
+                if (rep?.isGrounded !== undefined) {
+                  steps.push({
+                    type: 'judge',
+                    title: rep.isGrounded && !rep.requiresHumanReview ? `Auditoría Grounding: ${cName} (Aprobado)` : `Auditoría Grounding: ${cName} (Discrepancias)`,
+                    detail: rep.judgeFeedback || 'Auditado contra el CV.',
+                    status: rep.isGrounded && !rep.requiresHumanReview ? 'completed' : 'warning'
+                  });
+                }
               }
               loadedMessages[i].thoughtSteps = steps;
               break;
@@ -570,6 +574,16 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
             assistantMessage.technicalReport.judgeFeedback = data.reasoning || (Array.isArray(data.issues) ? data.issues.join('; ') : '');
           }
 
+          if (assistantMessage.technicalReports && assistantMessage.technicalReports.length > 0) {
+            for (const rep of assistantMessage.technicalReports) {
+              if (rep.isGrounded === undefined) {
+                rep.isGrounded = isApproved;
+                rep.requiresHumanReview = assistantMessage.technicalReport.requiresHumanReview;
+                rep.judgeFeedback = assistantMessage.technicalReport.judgeFeedback;
+              }
+            }
+          }
+
           if (!assistantMessage.thoughtSteps) assistantMessage.thoughtSteps = [];
           assistantMessage.thoughtSteps.push({
             type: 'judge',
@@ -583,7 +597,19 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
 
       case 'report':
         if (data) {
-          assistantMessage.technicalReport = { ...assistantMessage.technicalReport, ...data };
+          if (!assistantMessage.technicalReports) {
+            assistantMessage.technicalReports = [];
+          }
+          const candName = data?.personalInfo?.name;
+          const existingIdx = candName
+            ? assistantMessage.technicalReports.findIndex(r => r?.personalInfo?.name === candName)
+            : -1;
+          if (existingIdx >= 0) {
+            assistantMessage.technicalReports[existingIdx] = { ...assistantMessage.technicalReports[existingIdx], ...data };
+          } else {
+            assistantMessage.technicalReports.push(data);
+          }
+          assistantMessage.technicalReport = data;
         }
         this.streamingStatusText = '';
         break;
@@ -596,9 +622,38 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
         }
         const botPayload = data?.data?.message?.[0];
         if (botPayload) {
-          const report = botPayload.technical_report || botPayload.technicalReport;
-          if (report) {
-            assistantMessage.technicalReport = { ...assistantMessage.technicalReport, ...report };
+          const reportsList = botPayload.technical_reports || botPayload.technicalReports;
+          if (reportsList && Array.isArray(reportsList) && reportsList.length > 0) {
+            if (!assistantMessage.technicalReports) {
+              assistantMessage.technicalReports = [];
+            }
+            for (const rep of reportsList) {
+              const candName = rep?.personalInfo?.name;
+              const idx = candName
+                ? assistantMessage.technicalReports.findIndex(r => r?.personalInfo?.name === candName)
+                : -1;
+              if (idx >= 0) {
+                assistantMessage.technicalReports[idx] = { ...assistantMessage.technicalReports[idx], ...rep };
+              } else {
+                assistantMessage.technicalReports.push(rep);
+              }
+            }
+            assistantMessage.technicalReport = assistantMessage.technicalReports[assistantMessage.technicalReports.length - 1];
+          } else {
+            const report = botPayload.technical_report || botPayload.technicalReport;
+            if (report) {
+              if (!assistantMessage.technicalReports) {
+                assistantMessage.technicalReports = [];
+              }
+              const candName = report?.personalInfo?.name;
+              const idx = candName ? assistantMessage.technicalReports.findIndex(r => r?.personalInfo?.name === candName) : -1;
+              if (idx >= 0) {
+                assistantMessage.technicalReports[idx] = { ...assistantMessage.technicalReports[idx], ...report };
+              } else {
+                assistantMessage.technicalReports.push(report);
+              }
+              assistantMessage.technicalReport = { ...assistantMessage.technicalReport, ...report };
+            }
           }
           if (botPayload.content && !assistantMessage.content) {
             assistantMessage.content = botPayload.content;
@@ -657,6 +712,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
   }
 
   hasTechnicalReport(message: MessageType): boolean {
+    if (message.technicalReports && message.technicalReports.length > 0) {
+      return true;
+    }
     return !!(
       message.technicalReport &&
       typeof message.technicalReport === 'object' &&
@@ -669,8 +727,23 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
     );
   }
 
+  getTechnicalReports(message: MessageType): any[] {
+    if (message.technicalReports && Array.isArray(message.technicalReports) && message.technicalReports.length > 0) {
+      return message.technicalReports;
+    }
+    if (message.technicalReport && typeof message.technicalReport === 'object') {
+      return [message.technicalReport];
+    }
+    return [];
+  }
+
   getTechnicalReport(message: MessageType): any {
-    return message.technicalReport;
+    const list = this.getTechnicalReports(message);
+    return list.length > 0 ? list[0] : message.technicalReport;
+  }
+
+  trackByCandidate(index: number, report: any): string {
+    return report?.personalInfo?.name || index.toString();
   }
 
   getCategoryName(category: string): string {

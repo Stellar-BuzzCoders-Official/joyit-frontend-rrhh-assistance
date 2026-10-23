@@ -219,18 +219,28 @@ export class PdfExportService {
     // 2. Extraer todos los candidatos evaluados en el chat
     const candidatesFound: any[] = [];
     for (const msg of messages) {
-      if (msg.technicalReport && msg.technicalReport.personalInfo) {
-        const p = msg.technicalReport.personalInfo;
-        const res = msg.technicalReport.resumen || msg.technicalReport.evaluationSummary || {};
-        candidatesFound.push({
-          name: p.name || 'Candidato',
-          position: p.position || 'Desarrollador',
-          experience: p.experienceYears || 'N/D',
-          indispensables: res.cumpleIndispensable || res.requiredSkillsMet || 'Evaluado',
-          deseables: res.cumpleDeseable || res.optionalSkillsMet || 'Evaluado',
-          recomendation: res.recomendation || 'Apto para revisión técnica',
-          isGrounded: msg.technicalReport.isGrounded !== false
-        });
+      const reportsList = (msg.technicalReports && Array.isArray(msg.technicalReports) && msg.technicalReports.length > 0)
+        ? msg.technicalReports
+        : (msg.technicalReport ? [msg.technicalReport] : []);
+
+      for (const rep of reportsList) {
+        if (rep && rep.personalInfo) {
+          const p = rep.personalInfo;
+          // Evitar duplicados por nombre
+          if (candidatesFound.some(c => c.name === p.name)) {
+            continue;
+          }
+          const res = rep.resumen || rep.evaluationSummary || {};
+          candidatesFound.push({
+            name: p.name || 'Candidato',
+            position: p.position || 'Desarrollador',
+            experience: p.experienceYears || 'N/D',
+            indispensables: res.cumpleIndispensable || res.requiredSkillsMet || 'Evaluado',
+            deseables: res.cumpleDeseable || res.optionalSkillsMet || 'Evaluado',
+            recomendation: res.recomendation || 'Apto para revisión técnica',
+            isGrounded: rep.isGrounded !== false
+          });
+        }
       }
     }
 

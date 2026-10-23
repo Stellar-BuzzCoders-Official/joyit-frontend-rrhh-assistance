@@ -116,15 +116,15 @@
             <div *ngIf="hasTechnicalReport(message); else regularMessage">
               <div *ngIf="getExecutiveSummary(message)" class="markdown-content mb-4" [innerHTML]="renderMarkdown(getExecutiveSummary(message))"></div>
 
-              <!-- Reporte Técnico Detallado -->
-              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-200 shadow-sm">
-                <ng-container *ngIf="getTechnicalReport(message) as report">
+              <!-- Reportes Técnicos Detallados por Candidato -->
+              <div class="space-y-6">
+                <div *ngFor="let report of getTechnicalReports(message); trackBy: trackByCandidate" class="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-200 shadow-sm">
                   <div class="flex items-center justify-between mb-4">
                     <h4 class="font-bold text-blue-900 text-lg flex items-center">
                       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                       </svg>
-                      Reporte Técnico
+                      Reporte Técnico: {{ report?.personalInfo?.name || 'Candidato' }}
                     </h4>
  
                     <button
@@ -296,7 +296,7 @@
                       </div>
                     </div>
                   </div>
-                </ng-container>
+                </div>
               </div>
             </div>
 
