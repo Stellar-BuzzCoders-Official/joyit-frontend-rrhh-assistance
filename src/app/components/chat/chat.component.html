@@ -69,7 +69,9 @@
               >
                 <div class="flex items-center gap-2">
                   <span class="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-100 text-indigo-700 text-xs shrink-0">
-                    🧠
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
                   </span>
                   <span class="font-semibold text-slate-800">Pensamiento y herramientas</span>
                   <span *ngIf="getThoughtStepsCount(message) > 0" class="px-2 py-0.5 rounded-full bg-indigo-100/80 text-indigo-800 text-[10px] font-semibold">
@@ -112,7 +114,7 @@
 
             <!-- Mensaje con reporte técnico -->
             <div *ngIf="hasTechnicalReport(message); else regularMessage">
-              <p *ngIf="getExecutiveSummary(message)" class="whitespace-pre-wrap mb-4">{{ getExecutiveSummary(message) }}</p>
+              <div *ngIf="getExecutiveSummary(message)" class="markdown-content mb-4" [innerHTML]="renderMarkdown(getExecutiveSummary(message))"></div>
 
               <!-- Reporte Técnico Detallado -->
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-200 shadow-sm">
@@ -326,29 +328,25 @@
                 </div>
               </div>
               <ng-template #textMessage>
-                <p class="whitespace-pre-wrap leading-relaxed">
-                  {{ message.role === 'assistant' ? getExecutiveSummary(message) : getMessageDisplayContent(message) }}
+                <div class="leading-relaxed">
+                  <div
+                    *ngIf="message.role === 'assistant'; else userRawText"
+                    class="markdown-content"
+                    [innerHTML]="renderMarkdown(getExecutiveSummary(message))"
+                  ></div>
+                  <ng-template #userRawText>
+                    <p class="whitespace-pre-wrap">{{ getMessageDisplayContent(message) }}</p>
+                  </ng-template>
                   <span *ngIf="message.isStreaming" class="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse align-middle"></span>
-                </p>
+                </div>
               </ng-template>
             </ng-template>
           </ng-template>
         </div>
       </div>
 
-      <!-- Pill de estado del agente durante el streaming -->
-      <div *ngIf="streamingStatusText" class="flex justify-start">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-xs font-medium text-blue-800 shadow-sm animate-pulse">
-          <svg class="w-3.5 h-3.5 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span>{{ streamingStatusText }}</span>
-        </div>
-      </div>
-
-      <!-- Indicador de carga general sin texto de estado -->
-      <div *ngIf="isLoading && !streamingStatusText" class="flex justify-start">
+      <!-- Indicador de carga cuando inicia la conversación -->
+      <div *ngIf="isLoading && (!messages || messages.length === 0)" class="flex justify-start">
         <div class="bg-gray-100 rounded-2xl px-4 py-2 rounded-bl-sm border border-gray-200">
           <div class="flex items-center">
             <div class="flex space-x-1">

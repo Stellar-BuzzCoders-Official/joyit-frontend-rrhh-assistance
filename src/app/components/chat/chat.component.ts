@@ -2,6 +2,8 @@ import { Component, ElementRef, ViewChild, OnInit, AfterViewChecked, OnChanges, 
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { marked } from 'marked';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth/auth';
 import { PdfExportService } from '../../services/pdf-export.service';
@@ -84,7 +86,8 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
     private http: HttpClient,
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
-    private pdfExportService: PdfExportService
+    private pdfExportService: PdfExportService,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit() {
@@ -167,7 +170,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
               const steps: ThoughtStep[] = [
                 {
                   type: 'tool',
-                  title: '🔍 Evaluación Técnica de CV',
+                  title: 'Evaluación Técnica de CV',
                   detail: `Candidato: ${rep.personalInfo?.name || 'Evaluado'}. Puesto: ${rep.personalInfo?.position || 'Definido'}`,
                   status: 'completed'
                 }
@@ -175,7 +178,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
               if (rep.isGrounded !== undefined) {
                 steps.push({
                   type: 'judge',
-                  title: rep.isGrounded && !rep.requiresHumanReview ? '⚖️ Auditoría de Grounding: Aprobado' : '⚖️ Auditoría de Grounding: Discrepancias Detectadas',
+                  title: rep.isGrounded && !rep.requiresHumanReview ? 'Auditoría de Grounding: Aprobado' : 'Auditoría de Grounding: Discrepancias Detectadas',
                   detail: rep.judgeFeedback || 'Auditado contra el CV.',
                   status: rep.isGrounded && !rep.requiresHumanReview ? 'completed' : 'warning'
                 });
@@ -198,7 +201,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
         {
           id: this.generateId(),
           role: 'system',
-          content: `⚠️ No se pudo cargar el historial: ${err.message || err}`
+          content: `No se pudo cargar el historial: ${err.message || err}`
         }
       ];
     } finally {
@@ -361,7 +364,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
 
       // Si hay archivos adjuntos, primero los subimos en bloque al endpoint /api/v1/files/bulk
       if (currentFiles.length > 0) {
-        this.streamingStatusText = `📤 Subiendo ${currentFiles.length} CV(s) y procesando con Azure Document Intelligence...`;
+        this.streamingStatusText = `Subiendo ${currentFiles.length} CV(s) y procesando con Azure Document Intelligence...`;
         this.cdr.detectChanges();
 
         const formData = new FormData();
@@ -398,7 +401,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
         }
       }
 
-      this.streamingStatusText = '⚡ Conectando con el asistente de RRHH...';
+      this.streamingStatusText = 'Conectando con el asistente de RRHH...';
       this.cdr.detectChanges();
 
       // Construir payload para /api/v1/chat/stream
@@ -492,7 +495,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
       } else {
         this.messages.push({
           id: this.generateId(),
-          content: `⚠️ Error: ${error.message || error}`,
+          content: `Error: ${error.message || error}`,
           role: 'system'
         });
       }
@@ -514,11 +517,11 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
         break;
 
       case 'input_grounding':
-        this.streamingStatusText = '🛡️ Validando adecuación de requerimientos y políticas de seguridad...';
+        this.streamingStatusText = 'Validando adecuación de requerimientos y políticas de seguridad...';
         if (!assistantMessage.thoughtSteps) assistantMessage.thoughtSteps = [];
         assistantMessage.thoughtSteps.push({
           type: 'grounding',
-          title: '🛡️ Seguridad & Prompt Shields',
+          title: 'Seguridad & Prompt Shields',
           detail: data.is_safe ? 'Entrada evaluada y aprobada (sin inyecciones de prompt).' : `Guardrail activado: ${data.safety_reason}`,
           status: data.is_safe ? 'completed' : 'warning'
         });
@@ -527,17 +530,17 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
       case 'tool_start':
         let toolTitle = data.tool;
         if (data.tool === 'set_job_requirements') {
-          this.streamingStatusText = '📋 Guardando y estructurando perfil del puesto...';
-          toolTitle = '📋 Estructuración de Requisitos Técnicos';
+          this.streamingStatusText = 'Guardando y estructurando perfil del puesto...';
+          toolTitle = 'Estructuración de Requisitos Técnicos';
         } else if (data.tool === 'evaluate_cv') {
-          this.streamingStatusText = '🔍 Evaluando competencias del CV contra los requerimientos técnicos...';
-          toolTitle = '🔍 Evaluación Técnica de CV';
+          this.streamingStatusText = 'Evaluando competencias del CV contra los requerimientos técnicos...';
+          toolTitle = 'Evaluación Técnica de CV';
         } else if (data.tool === 'search_talent_pool') {
-          this.streamingStatusText = '👥 Consultando candidatos afines en el Talent Pool histórico (RAG)...';
-          toolTitle = '👥 Búsqueda Semántica en Talent Pool';
+          this.streamingStatusText = 'Consultando candidatos afines en el Talent Pool histórico (RAG)...';
+          toolTitle = 'Búsqueda Semántica en Talent Pool';
         } else {
-          this.streamingStatusText = `⚙️ Ejecutando herramienta: ${data.tool}...`;
-          toolTitle = `⚙️ Herramienta: ${data.tool}`;
+          this.streamingStatusText = `Ejecutando herramienta: ${data.tool}...`;
+          toolTitle = `Herramienta: ${data.tool}`;
         }
         if (!assistantMessage.thoughtSteps) assistantMessage.thoughtSteps = [];
         assistantMessage.thoughtSteps.push({
@@ -570,12 +573,12 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
           if (!assistantMessage.thoughtSteps) assistantMessage.thoughtSteps = [];
           assistantMessage.thoughtSteps.push({
             type: 'judge',
-            title: isApproved ? '⚖️ Auditoría de Grounding: Aprobado (100% verificado)' : '⚖️ Auditoría de Grounding: Discrepancias Detectadas',
+            title: isApproved ? 'Auditoría de Grounding: Aprobado (100% verificado)' : 'Auditoría de Grounding: Discrepancias Detectadas',
             detail: (data.reasoning ? `Dictamen: ${data.reasoning}\n\n` : '') + (data.issues && data.issues.length > 0 ? `Discrepancias:\n• ${data.issues.join('\n• ')}` : ''),
             status: isApproved ? 'completed' : 'warning'
           });
         }
-        this.streamingStatusText = '⚖️ Auditoría de grounding del sub-agente auditor completada.';
+        this.streamingStatusText = 'Auditoría de grounding completada.';
         break;
 
       case 'report':
@@ -616,7 +619,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
         const errMsg = data.error || 'Error inesperado del servidor';
         this.messages.push({
           id: this.generateId(),
-          content: `⚠️ Error del asistente: ${errMsg}`,
+          content: `Error del asistente: ${errMsg}`,
           role: 'system'
         });
         break;
@@ -833,5 +836,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnChanges {
 
   getDetailedReasoning(message: MessageType): string {
     return this.splitMessageContent(message).reasoning;
+  }
+
+  renderMarkdown(text: string): SafeHtml {
+    if (!text) return '';
+    try {
+      const html = marked.parse(text, { breaks: true, gfm: true }) as string;
+      return this.sanitizer.bypassSecurityTrustHtml(html);
+    } catch {
+      return text;
+    }
   }
 }
